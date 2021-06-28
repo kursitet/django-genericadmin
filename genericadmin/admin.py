@@ -1,31 +1,30 @@
-from functools import update_wrapper
 import json
+from functools import update_wrapper
 
-from django.conf import settings
-from django.conf.urls import patterns, url
 from django.contrib import admin
-from django.contrib.admin.widgets import url_params_from_lookup_dict
+from django.conf.urls import url
+from django.conf import settings
 try:
-    from django.contrib.admin.views.main import IS_POPUP_VAR
+    from django.contrib.contenttypes.generic import GenericForeignKey,  GenericTabularInline, GenericStackedInline
 except ImportError:
-    from django.contrib.admin.options import IS_POPUP_VAR
-try:
+    from django.contrib.contenttypes.admin import GenericStackedInline, GenericTabularInline
     from django.contrib.contenttypes.fields import GenericForeignKey
-except ImportError:
-    from django.contrib.contenttypes.generic import (GenericForeignKey,
-                                                     GenericTabularInline)
-from django.contrib.contenttypes import admin as GA
+
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
-from django.http import HttpResponse, HttpResponseNotAllowed, Http404
 try:
     from django.utils.encoding import force_text
 except ImportError:
     from django.utils.encoding import force_unicode as force_text
 from django.utils.text import capfirst
+from django.contrib.admin.widgets import url_params_from_lookup_dict
+from django.http import HttpResponse, HttpResponseNotAllowed, Http404
+try:
+    from django.contrib.admin.views.main import IS_POPUP_VAR
+except ImportError:
+    from django.contrib.admin.options import IS_POPUP_VAR
+from  django.core.exceptions import ObjectDoesNotExist
 
 JS_PATH = getattr(settings, 'GENERICADMIN_JS', 'genericadmin/js/')
-
 
 class BaseGenericModelAdmin(object):
     class Media:
@@ -65,9 +64,8 @@ class BaseGenericModelAdmin(object):
                     field_list.append(fields)
         else:
             for field in self.model._meta.virtual_fields:
-                if isinstance(field, GenericForeignKey) and\
-                   field.ct_field not in exclude and\
-                   field.fk_field not in exclude:
+                if isinstance(field, GenericForeignKey) and \
+                        field.ct_field not in exclude and field.fk_field not in exclude:
                     field_list.append({
                         'ct_field': field.ct_field,
                         'fk_field': field.fk_field,
@@ -76,7 +74,7 @@ class BaseGenericModelAdmin(object):
                     })
 
         if hasattr(self, 'inlines') and len(self.inlines) > 0:
-            for FormSet, inline in zip(self.get_formsets(request), self.get_inline_instances(request)):
+            for FormSet, inline in zip(self.get_formsets_with_inlines(request), self.get_inline_instances(request)):
                 if hasattr(inline, 'get_generic_field_list'):
                     prefix = FormSet.get_default_prefix()
                     field_list = field_list + inline.get_generic_field_list(request, prefix)
@@ -89,11 +87,10 @@ class BaseGenericModelAdmin(object):
                 return self.admin_site.admin_view(view)(*args, **kwargs)
             return update_wrapper(wrapper, view)
 
-        custom_urls = patterns(
-            '',
+        custom_urls = [
             url(r'^obj-data/$', wrap(self.generic_lookup), name='admin_genericadmin_obj_lookup'),
             url(r'^genericadmin-init/$', wrap(self.genericadmin_js_init), name='admin_genericadmin_init'),
-        )
+        ]
         return custom_urls + super(BaseGenericModelAdmin, self).get_urls()
 
     def genericadmin_js_init(self, request):
@@ -146,15 +143,16 @@ class BaseGenericModelAdmin(object):
         return HttpResponse(resp, content_type='application/json')
 
 
+
 class GenericAdminModelAdmin(BaseGenericModelAdmin, admin.ModelAdmin):
     """Model admin for generic relations. """
 
 
-class GenericTabularInline(BaseGenericModelAdmin, GA.GenericTabularInline):
+class GenericTabularInline(BaseGenericModelAdmin, GenericTabularInline):
     """Model admin for generic tabular inlines. """
 
 
-class GenericStackedInline(BaseGenericModelAdmin, GA.GenericStackedInline):
+class GenericStackedInline(BaseGenericModelAdmin, GenericStackedInline):
     """Model admin for generic stacked inlines. """
 
 
