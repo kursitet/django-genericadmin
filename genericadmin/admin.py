@@ -4,7 +4,11 @@ import json
 from functools import update_wrapper
 
 from django.contrib import admin
-from django.conf.urls import url
+import django
+if django.VERSION < (3, 2):
+    from django.conf.urls import url
+else:
+    from django.urls import re_path as url
 from django.conf import settings
 try:
     from django.contrib.contenttypes.generic import GenericForeignKey,  GenericTabularInline, GenericStackedInline
