@@ -18,9 +18,12 @@ except ImportError:
 
 from django.contrib.contenttypes.models import ContentType
 try:
-    from django.utils.encoding import force_text
+    from django.utils.encoding import force_str as force_text
 except ImportError:
-    from django.utils.encoding import force_unicode as force_text
+    try:
+        from django.utils.encoding import force_text
+    except ImportError:
+        from django.utils.encoding import force_unicode as force_text
 from django.utils.text import capfirst
 from django.contrib.admin.widgets import url_params_from_lookup_dict
 from django.http import HttpResponse, HttpResponseNotAllowed, Http404
